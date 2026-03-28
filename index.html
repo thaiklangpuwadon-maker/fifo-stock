@@ -194,6 +194,25 @@ td.mono{font-family:var(--mono);font-size:12px;color:var(--accent);}
 .divider{height:1px;background:var(--border);margin:16px 0;}
 .empty{text-align:center;padding:40px;color:var(--text3);font-size:13px;}
 .empty .ei{font-size:30px;margin-bottom:7px;}
+
+/* TYPE FILTER TABS */
+.type-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.type-tab{padding:8px 18px;border:1px solid var(--border);border-radius:20px;background:var(--s2);color:var(--text2);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;white-space:nowrap;}
+.type-tab:hover{border-color:var(--accent);color:var(--accent);}
+.type-tab.active{background:rgba(0,212,170,.1);border-color:var(--accent);color:var(--accent);}
+.type-tab.urgent-tab.active{background:rgba(239,68,68,.1);border-color:var(--danger);color:var(--danger);}
+
+/* PROGRESS BAR */
+.lot-progress{height:5px;background:var(--border);border-radius:3px;margin-top:8px;overflow:hidden;}
+.lot-progress-fill{height:100%;border-radius:3px;transition:width .3s;}
+
+/* LOT DETAIL CARD */
+.lot-detail{background:var(--s2);border-radius:8px;padding:10px 14px;margin-top:8px;}
+.lot-detail-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04);}
+.lot-detail-row:last-child{border:none;}
+.ldr-label{color:var(--text3);}
+.ldr-val{font-family:var(--mono);font-size:11px;font-weight:600;}
+
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:var(--bg);}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
@@ -418,6 +437,15 @@ td.mono{font-family:var(--mono);font-size:12px;color:var(--accent);}
   </div>
 
   <div id="alerts-zone"></div>
+
+  <!-- TYPE FILTER TABS -->
+  <div class="type-tabs" id="type-tabs">
+    <button class="type-tab active" onclick="setTypeTab('all',this)">📦 ทั้งหมด</button>
+    <button class="type-tab urgent-tab" onclick="setTypeTab('urgent',this)">⚠️ ด่วน</button>
+    <button class="type-tab" onclick="setTypeTab('เนื้อหมู',this)">🐷 หมู</button>
+    <button class="type-tab" onclick="setTypeTab('เนื้อวัว',this)">🐄 วัว</button>
+    <button class="type-tab" onclick="setTypeTab('มันหมู',this)">🧈 มันหมู</button>
+  </div>
 
   <!-- STAT CARDS -->
   <div class="g4" style="margin-bottom:16px">
@@ -854,7 +882,13 @@ function fillMax() {
   if (!id) { toast('กรุณาเลือกล็อตก่อน', 'err'); return; }
   const s = calcLot(id);
   if (!s) return;
-  document.getElementById('m-amt').value = s.remaining.toFixed(2);
+  // ใส่ kg ตามปลายทางที่เลือก
+  const maxAmt = selectedDest === 'fridge' ? s.freezeKg :
+                 selectedDest === 'freeze' ? s.fridgeKg :
+                 selectedDest === 'prod'   ? (s.fridgeKg + s.freezeKg) :
+                 s.remaining;
+  document.getElementById('m-amt').value = maxAmt.toFixed(2);
+  if (!selectedDest) toast('เลือกปลายทางก่อนแล้วค่อยกด "ทั้งหมด"', 'inf');
 }
 
 function checkAmt() {
@@ -886,7 +920,17 @@ async function submitMove() {
   if (!amt || amt <= 0) { toast('กรุณาระบุจำนวน', 'err'); return; }
   if (!selectedDest)   { toast('กรุณาเลือกปลายทาง', 'err'); return; }
   const s = calcLot(lot);
-  if (!s || amt > s.remaining) { toast(`จำนวนเกินคงเหลือ (เหลือ ${s?.remaining.toFixed(2)} kg)`, 'err'); return; }
+  if (!s) { toast('ไม่พบล็อตนี้', 'err'); return; }
+  // FIX: เช็คว่าย้ายได้ไม่เกิน kg ในตำแหน่งปัจจุบัน
+  const maxAmt = selectedDest === 'fridge' ? s.freezeKg :
+                 selectedDest === 'freeze' ? s.fridgeKg :
+                 selectedDest === 'prod'   ? (s.fridgeKg + s.freezeKg) : s.remaining;
+  if (amt > maxAmt) {
+    const loc = selectedDest === 'fridge' ? `ช่องฟรีซ (${s.freezeKg.toFixed(1)} kg)` :
+                selectedDest === 'freeze' ? `ตู้เย็น (${s.fridgeKg.toFixed(1)} kg)` :
+                `คงเหลือ (${s.remaining.toFixed(1)} kg)`;
+    toast(`เกินที่มี! ${loc}`, 'err'); return;
+  }
 
   const now = new Date();
   const entry = {
@@ -939,6 +983,15 @@ function renderMLog() {
 // ══════════════════════════════════════════
 // MONITOR — FIX: แยกตามประเภท + Re-frozen ถูกต้อง
 // ══════════════════════════════════════════
+let currentTypeTab = 'all';
+
+function setTypeTab(type, btn) {
+  currentTypeTab = type;
+  document.querySelectorAll('.type-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderMonitor();
+}
+
 function updateFtType() {
   const sel = document.getElementById('ft-type');
   const cur = sel.value;
@@ -1010,7 +1063,10 @@ function renderMonitor() {
 
   // QUEUE CARDS
   const byType = {};
-  lots.forEach(l => { if (!byType[l.type]) byType[l.type]=[]; byType[l.type].push(l); });
+  const queueLots = currentTypeTab === 'urgent' ? lots.filter(l => l.status === 'urgent') :
+                    currentTypeTab === 'all' ? lots :
+                    lots.filter(l => l.type === currentTypeTab);
+  queueLots.forEach(l => { if (!byType[l.type]) byType[l.type]=[]; byType[l.type].push(l); });
   Object.keys(byType).forEach(type => {
     byType[type].sort((a,b) => {
       const p={urgent:0,warn:1,ok:2};
@@ -1036,14 +1092,15 @@ function renderMonitor() {
         <div class="q-rank">#${i+1}</div>
         <div class="q-type-tag">${type}</div>
         <div class="q-lot-id">${l.id}</div>
-        <div class="q-info">
-          <div class="q-row"><span class="q-label">คงเหลือรวม</span><span class="q-val" style="color:var(--accent)">${l.remaining.toFixed(1)} kg</span></div>
-          <div class="q-row"><span class="q-label">ส่งผลิตแล้ว</span><span class="q-val" style="color:var(--green)">${l.sentProd.toFixed(1)} kg</span></div>
+        <div class="lot-detail">
+          <div class="lot-detail-row"><span class="ldr-label">รับเข้าทั้งหมด</span><span class="ldr-val">${l.weight} kg</span></div>
+          <div class="lot-detail-row"><span class="ldr-label">❄️ ช่องฟรีซ</span><span class="ldr-val" style="color:var(--accent)">${l.freezeKg.toFixed(1)} kg</span></div>
+          <div class="lot-detail-row"><span class="ldr-label">🧊 ตู้เย็น</span><span class="ldr-val" style="color:var(--warn)">${l.fridgeKg.toFixed(1)} kg</span></div>
+          <div class="lot-detail-row"><span class="ldr-label">🏭 ส่งผลิตแล้ว</span><span class="ldr-val" style="color:var(--green)">${l.sentProd.toFixed(1)} kg</span></div>
+          <div class="lot-detail-row"><span class="ldr-label">คงเหลือรวม</span><span class="ldr-val" style="color:var(--accent);font-size:13px">${l.remaining.toFixed(1)} kg</span></div>
         </div>
-        <div class="q-loc-chips">
-          ${l.freezeKg>0?`<span class="qlc qlc-freeze">❄️ ${l.freezeKg.toFixed(0)} kg</span>`:''}
-          ${l.fridgeKg>0?`<span class="qlc qlc-fridge">🧊 ${l.fridgeKg.toFixed(0)} kg</span>`:''}
-          ${l.sentProd>0?`<span class="qlc qlc-prod">🏭 ${l.sentProd.toFixed(0)} kg</span>`:''}
+        <div class="lot-progress">
+          <div class="lot-progress-fill" style="width:${Math.round(l.remaining/l.weight*100)}%;background:${l.status==='urgent'?'var(--danger)':l.status==='warn'?'var(--warn)':'var(--accent)'}"></div>
         </div>
         <div class="q-footer">
           <div class="tl ${tlClass}"></div>
@@ -1058,6 +1115,9 @@ function renderMonitor() {
 
   // FULL TABLE
   let filtered = lots;
+  // แท็บกรอง
+  if (currentTypeTab === 'urgent') filtered = filtered.filter(l => l.status === 'urgent');
+  else if (currentTypeTab !== 'all') filtered = filtered.filter(l => l.type === currentTypeTab);
   if (ftType) filtered = filtered.filter(l => l.type===ftType);
   if (ftLoc)  filtered = filtered.filter(l => l.currentLoc===ftLoc);
   filtered.sort((a,b) => {
