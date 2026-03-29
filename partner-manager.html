@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NKW Partner Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e1a;
+  --bg2: #111827;
+  --bg3: #1a2235;
+  --card: #141d2e;
+  --border: #1e3a5f;
+  --accent: #00d4aa;
+  --accent2: #0ea5e9;
+  --accent3: #f59e0b;
+  --red: #ef4444;
+  --text: #e2e8f0;
+  --text2: #94a3b8;
+  --text3: #64748b;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sarabun', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; }
+
+/* ===== LAYOUT ===== */
+.app { display: flex; min-height: 100vh; }
+.sidebar {
+  width: 240px; background: var(--bg2); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 100;
+  transition: transform .3s;
+}
+.sidebar-logo {
+  padding: 20px 16px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.sidebar-logo .logo-icon {
+  width: 36px; height: 36px; background: linear-gradient(135deg, var(--accent), var(--accent2));
+  border-radius: 8px; display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.sidebar-logo .logo-text { font-weight: 700; font-size: 13px; line-height: 1.3; color: var(--text); }
+.sidebar-logo .logo-sub { font-size: 11px; color: var(--text3); }
+.sidebar-nav { flex: 1; padding: 12px 8px; overflow-y: auto; }
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  border-radius: 8px; cursor: pointer; transition: all .2s; color: var(--text2);
+  font-size: 14px; margin-bottom: 2px;
+}
+.nav-item:hover { background: var(--bg3); color: var(--text); }
+.nav-item.active { background: linear-gradient(135deg, rgba(0,212,170,.15), rgba(14,165,233,.1)); color: var(--accent); border: 1px solid rgba(0,212,170,.2); }
+.nav-item .nav-icon { font-size: 18px; width: 22px; text-align: center; }
+.main { margin-left: 240px; flex: 1; display: flex; flex-direction: column; }
+.topbar {
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  padding: 12px 24px; display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: 0; z-index: 50;
+}
+.topbar-title { font-size: 18px; font-weight: 600; }
+.topbar-right { display: flex; gap: 10px; align-items: center; }
+.content { padding: 24px; flex: 1; }
+
+/* ===== INPUTS ===== */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+  border-radius: 8px; border: none; cursor: pointer; font-family: 'Sarabun', sans-serif;
+  font-size: 14px; font-weight: 500; transition: all .2s; white-space: nowrap;
+}
+.btn-primary { background: var(--accent); color: #000; }
+.btn-primary:hover { background: #00bfa5; transform: translateY(-1px); }
+.btn-secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--border); }
+.btn-danger { background: rgba(239,68,68,.15); color: var(--red); border: 1px solid rgba(239,68,68,.3); }
+.btn-danger:hover { background: rgba(239,68,68,.25); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn-icon { padding: 7px; border-radius: 7px; }
+
+input, select, textarea {
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+  border-radius: 8px; padding: 9px 12px; font-family: 'Sarabun', sans-serif;
+  font-size: 14px; width: 100%; transition: border-color .2s; outline: none;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+input::placeholder, textarea::placeholder { color: var(--text3); }
+select option { background: var(--bg2); }
+label { display: block; font-size: 13px; color: var(--text2); margin-bottom: 5px; font-weight: 500; }
+.form-group { margin-bottom: 14px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+/* ===== CARDS ===== */
+.card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.card-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 24px; }
+.stat-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px 20px;
+}
+.stat-val { font-size: 26px; font-weight: 700; color: var(--accent); }
+.stat-label { font-size: 12px; color: var(--text3); margin-top: 2px; }
+
+/* ===== TABLE ===== */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; padding: 10px 12px; color: var(--text3); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+td { padding: 11px 12px; border-bottom: 1px solid rgba(30,58,95,.4); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,.02); }
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.badge-green { background: rgba(0,212,170,.15); color: var(--accent); }
+.badge-blue { background: rgba(14,165,233,.15); color: var(--accent2); }
+.badge-yellow { background: rgba(245,158,11,.15); color: var(--accent3); }
+
+/* ===== MODAL ===== */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 16px; opacity: 0; pointer-events: none; transition: opacity .25s; }
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal { background: var(--bg2); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 560px; max-height: 90vh; overflow-y: auto; transform: translateY(16px); transition: transform .25s; }
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal-header { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.modal-title { font-size: 17px; font-weight: 600; }
+.modal-close { background: none; border: none; color: var(--text2); font-size: 22px; cursor: pointer; line-height: 1; padding: 4px; }
+.modal-body { padding: 20px 24px; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+
+/* ===== ORDER BUILDER ===== */
+.product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; max-height: 380px; overflow-y: auto; padding-right: 4px; }
+.product-card {
+  background: linear-gradient(145deg, #141d2e, #1a2540);
+  border: 1px solid var(--border); border-radius: 12px;
+  padding: 14px 12px; cursor: pointer; transition: all .25s; text-align: center;
+  position: relative; overflow: hidden;
+}
+.product-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(0,212,170,0) 0%, rgba(0,212,170,.04) 100%);
+  opacity: 0; transition: opacity .2s;
+}
+.product-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,212,170,.15); }
+.product-card:hover::before { opacity: 1; }
+.product-card.selected { border-color: var(--accent); background: linear-gradient(145deg, #0d2420, #0f2d24); box-shadow: 0 0 0 1px var(--accent), 0 6px 20px rgba(0,212,170,.2); }
+.product-card .p-code { font-size: 10px; color: var(--text3); margin-bottom: 4px; font-family: monospace; letter-spacing: .5px; }
+.product-card .p-name { font-size: 12px; font-weight: 600; line-height: 1.4; margin-bottom: 8px; color: var(--text); min-height: 34px; display: flex; align-items: center; justify-content: center; }
+.product-card .p-price { font-size: 15px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+.product-card .p-weight { display: inline-block; font-size: 10px; background: rgba(14,165,233,.15); color: var(--accent2); border-radius: 20px; padding: 2px 8px; font-weight: 600; }
+.cart-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.cart-item:last-child { border-bottom: none; }
+.cart-item-name { flex: 1; font-size: 13px; font-weight: 500; }
+.cart-item-price { font-size: 13px; color: var(--accent); width: 80px; text-align: right; }
+.qty-ctrl { display: flex; align-items: center; gap: 6px; }
+.qty-btn { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg3); color: var(--text); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+.qty-btn:hover { border-color: var(--accent); color: var(--accent); }
+.qty-num { width: 32px; text-align: center; font-weight: 600; font-size: 14px; }
+
+/* ===== PRINT ===== */
+@media print {
+  body { background: white !important; color: black !important; font-family: 'Sarabun', sans-serif !important; }
+  .no-print { display: none !important; }
+  #print-area { display: block !important; }
+  * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
+#print-area { display: none; }
+
+/* ===== RESPONSIVE ===== */
+.hamburger { display: none; background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer; padding: 4px; }
+@media (max-width: 768px) {
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); box-shadow: 4px 0 20px rgba(0,0,0,.5); }
+  .main { margin-left: 0; }
+  .hamburger { display: block; }
+  .form-row, .form-row-3 { grid-template-columns: 1fr; }
+  .content { padding: 16px; }
+  .product-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
+}
+.overlay-bg { position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 99; display: none; }
+.overlay-bg.open { display: block; }
+
+/* ===== MISC ===== */
+.section-tabs { display: flex; gap: 4px; margin-bottom: 18px; }
+.tab-btn { padding: 7px 16px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text2); cursor: pointer; font-size: 13px; font-family: 'Sarabun', sans-serif; transition: all .2s; }
+.tab-btn.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+.search-bar { position: relative; }
+.search-bar input { padding-left: 36px; }
+.search-bar::before { content: '🔍'; position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 14px; z-index: 1; }
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text3); }
+.empty-state .empty-icon { font-size: 40px; margin-bottom: 10px; }
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--accent); color: #000; padding: 12px 20px; border-radius: 10px; font-weight: 600; font-size: 14px; z-index: 9999; transform: translateY(60px); opacity: 0; transition: all .3s; }
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.error { background: var(--red); color: white; }
+.loading { display: flex; align-items: center; justify-content: center; padding: 40px; gap: 10px; color: var(--text2); }
+.spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+hr { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+.text-right { text-align: right; }
+.text-accent { color: var(--accent); }
+.text-muted { color: var(--text2); font-size: 13px; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid var(--border); }
+.settings-row:last-child { border-bottom: none; }
+.settings-label { font-size: 14px; font-weight: 500; }
+.settings-desc { font-size: 12px; color: var(--text3); margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<div class="overlay-bg" id="overlayBg" onclick="closeSidebar()"></div>
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🌿</div>
+    <div>
+      <div class="logo-text">NKW Partner</div>
+      <div class="logo-sub">Manager v1.0</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard"><span class="nav-icon">📊</span> ภาพรวม</div>
+    <div class="nav-item" onclick="showPage('order')" id="nav-order"><span class="nav-icon">🛒</span> สร้างออเดอร์</div>
+    <div class="nav-item" onclick="showPage('orders')" id="nav-orders"><span class="nav-icon">📋</span> ประวัติออเดอร์</div>
+    <div class="nav-item" onclick="showPage('partners')" id="nav-partners"><span class="nav-icon">🏪</span> พาร์ทเนอร์</div>
+    <div class="nav-item" onclick="showPage('products')" id="nav-products"><span class="nav-icon">📦</span> สินค้า</div>
+    <div class="nav-item" onclick="showPage('settings')" id="nav-settings"><span class="nav-icon">⚙️</span> ตั้งค่า</div>
+  </nav>
+</div>
+
+<div class="main">
+  <div class="topbar no-print">
+    <div style="display:flex;align-items:center;gap:12px">
+      <button class="hamburger" onclick="toggleSidebar()">☰</button>
+      <span class="topbar-title" id="pageTitle">ภาพรวม</span>
+    </div>
+    <div class="topbar-right">
+      <button class="btn btn-primary" onclick="showPage('order')">➕ ออเดอร์ใหม่</button>
+    </div>
+  </div>
+
+  <div class="content" id="mainContent">
+    <div class="loading"><div class="spinner"></div> กำลังโหลด...</div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- PRINT AREA -->
+<div id="print-area"></div>
+
+<script>
+// ============================================================
+// CONFIG — เปลี่ยน URL ที่นี่เลย
+// ============================================================
+let SCRIPT_URL = localStorage.getItem('nkw_script_url') || '';
+let COMPANY_INFO = JSON.parse(localStorage.getItem('nkw_company') || 'null') || {
+  name: '(주)농카이월드마트',
+  name_th: 'บริษัท นองไคเวิลด์มาร์ท',
+  tax_id: '743-87-00447',
+  address: 'ก ยองกีโด ฮวาซองซี ซอชินมยอน เฮินดึลกิล 36, 1ดง',
+  phone: '010-9707-2585',
+  ceo: 'PHONKAYAN SITPRAPAN',
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let state = {
+  products: [], partners: [], orders: [],
+  cart: [], selectedPartner: null,
+  currentPage: 'dashboard',
+};
+let orderNo_counter = 0;
+
+// ============================================================
+// API
+// ============================================================
+async function api(action, body = {}) {
+  if (!SCRIPT_URL) { showToast('กรุณาตั้งค่า Script URL ก่อน', true); return null; }
+  try {
+    const res = await fetch(SCRIPT_URL, {
+      method: 'POST', redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action, ...body }),
+    });
+    return await res.json();
+  } catch(e) {
+    showToast('เชื่อมต่อ server ไม่ได้: ' + e.message, true);
+    return null;
+  }
+}
+
+// ============================================================
+// INIT
+// ============================================================
+async function init() {
+  if (!SCRIPT_URL) { showPage('settings'); return; }
+  // ล้าง cart ทุกครั้งที่โหลด
+  state.cart = [];
+  state.selectedPartner = null;
+  showLoading();
+  const [prd, prt, ord] = await Promise.all([
+    api('getProducts'), api('getPartners'), api('getOrders')
+  ]);
+  if (prd?.ok) state.products = prd.data;
+  if (prt?.ok) state.partners = prt.data;
+  if (ord?.ok) state.orders = ord.data;
+  showPage('dashboard');
+}
+
+function showLoading() {
+  document.getElementById('mainContent').innerHTML = '<div class="loading"><div class="spinner"></div> กำลังโหลด...</div>';
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showPage(page) {
+  state.currentPage = page;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navEl = document.getElementById('nav-' + page);
+  if (navEl) navEl.classList.add('active');
+  const titles = { dashboard:'ภาพรวม', order:'สร้างออเดอร์ใหม่', orders:'ประวัติออเดอร์', partners:'จัดการพาร์ทเนอร์', products:'จัดการสินค้า', settings:'ตั้งค่าระบบ' };
+  document.getElementById('pageTitle').textContent = titles[page] || page;
+  const pages = { dashboard: renderDashboard, order: renderOrderPage, orders: renderOrdersPage, partners: renderPartnersPage, products: renderProductsPage, settings: renderSettingsPage };
+  if (pages[page]) pages[page]();
+  closeSidebar();
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('overlayBg').classList.toggle('open');
+}
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlayBg').classList.remove('open');
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard() {
+  const totalOrders = state.orders.length;
+  const totalRevenue = state.orders.reduce((s, o) => s + (Number(o.total) || 0), 0);
+  const totalPartners = state.partners.length;
+  const todayOrders = state.orders.filter(o => {
+    const d = new Date(o.created_at || o.order_date);
+    const t = new Date();
+    return d.toDateString() === t.toDateString();
+  }).length;
+
+  const recentOrders = state.orders.slice(0, 5);
+
+  document.getElementById('mainContent').innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-val">${totalPartners}</div><div class="stat-label">🏪 พาร์ทเนอร์ทั้งหมด</div></div>
+      <div class="stat-card"><div class="stat-val">${totalOrders}</div><div class="stat-label">📋 ออเดอร์ทั้งหมด</div></div>
+      <div class="stat-card"><div class="stat-val">${todayOrders}</div><div class="stat-label">📅 ออเดอร์วันนี้</div></div>
+      <div class="stat-card"><div class="stat-val">${fmt(totalRevenue)}</div><div class="stat-label">💰 รายได้รวม (₩)</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📋 ออเดอร์ล่าสุด</div>
+      ${recentOrders.length === 0 ? '<div class="empty-state"><div class="empty-icon">📭</div><div>ยังไม่มีออเดอร์</div></div>' : `
+      <div class="table-wrap"><table>
+        <thead><tr><th>เลขที่</th><th>ร้าน</th><th>วันที่</th><th>ยอดรวม</th><th>Action</th></tr></thead>
+        <tbody>
+        ${recentOrders.map(o => `
+          <tr>
+            <td><span class="text-accent">${o.order_no}</span></td>
+            <td>${o.shop_name}</td>
+            <td>${o.order_date}</td>
+            <td><strong>${fmt(o.total)} ₩</strong></td>
+            <td><button class="btn btn-sm btn-secondary" onclick='printOrder("${o.order_id}")'>🖨️ พิมพ์</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table></div>`}
+    </div>`;
+}
+
+// ============================================================
+// ORDER PAGE
+// ============================================================
+function renderOrderPage() {
+  document.getElementById('mainContent').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 340px;gap:20px">
+      <div>
+        <!-- Step 1: เลือกร้าน -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title">1️⃣ เลือกร้านพาร์ทเนอร์</div>
+          <div class="form-group">
+            <select id="partnerSelect" onchange="onPartnerChange()" style="font-size:15px;padding:11px 14px">
+              <option value="">— กรุณาเลือกร้าน —</option>
+              ${state.partners.map(p => `<option value="${p.partner_id}">${p.shop_name}${p.legal_name ? ' ('+p.legal_name+')' : ''}</option>`).join('')}
+            </select>
+          </div>
+          <div id="partnerInfo" style="display:none" class="card" style="background:var(--bg3);margin-top:10px"></div>
+        </div>
+        <!-- Step 2: เลือกสินค้า -->
+        <div class="card">
+          <div class="card-title">2️⃣ เลือกสินค้า</div>
+          <div class="search-bar" style="margin-bottom:12px">
+            <input type="text" id="productSearch" placeholder="ค้นหาสินค้า..." oninput="filterProducts()">
+          </div>
+          <div class="section-tabs" id="categoryTabs"></div>
+          <div class="product-grid" id="productGrid"></div>
+        </div>
+      </div>
+      <!-- Cart -->
+      <div>
+        <div class="card" style="position:sticky;top:72px">
+          <div class="card-title">🛒 รายการสั่งซื้อ</div>
+          <div id="cartItems"><div class="empty-state"><div class="empty-icon">🛒</div><div>ยังไม่มีสินค้า</div></div></div>
+          <hr>
+          <div id="cartSummary" style="display:none">
+            <!-- ค่าขนส่ง -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:10px 12px;background:var(--bg3);border-radius:8px;border:1px solid var(--border)">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:13px">🚚 ค่าขนส่ง / 배송비</span>
+                <label style="position:relative;display:inline-block;width:40px;height:22px;margin:0">
+                  <input type="checkbox" id="shippingToggle" checked onchange="updateShipping()" style="opacity:0;width:0;height:0">
+                  <span id="shippingSlider" style="position:absolute;cursor:pointer;inset:0;background:#1e3a5f;border-radius:22px;transition:.3s">
+                    <span id="shippingKnob" style="position:absolute;width:16px;height:16px;background:#00d4aa;border-radius:50%;top:3px;left:22px;transition:.3s"></span>
+                  </span>
+                </label>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <input type="number" id="shippingAmt" value="5000" min="0" step="500"
+                  style="width:80px;padding:4px 8px;font-size:13px;text-align:right"
+                  oninput="updateShipping()">
+                <span style="font-size:12px;color:var(--text2)">₩</span>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:16px;font-weight:700">
+              <span>ยอดรวมทั้งหมด</span>
+              <span class="text-accent" id="totalEl">0 ₩</span>
+            </div>
+            <div id="subtotalEl" style="display:none"></div>
+          </div>
+          <div class="form-group" style="margin-top:14px">
+            <label>วันที่ออเดอร์</label>
+            <input type="date" id="orderDate" value="${new Date().toISOString().split('T')[0]}">
+          </div>
+          <div class="form-group">
+            <label>หมายเหตุ</label>
+            <textarea id="orderNotes" rows="2" placeholder="(ถ้ามี)"></textarea>
+          </div>
+          <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;font-size:15px" onclick="submitOrder()">✅ ยืนยันออเดอร์</button>
+        </div>
+      </div>
+    </div>`;
+
+  renderProductGrid();
+  renderCategoryTabs();
+}
+
+let activeCategory = 'ทั้งหมด';
+function renderCategoryTabs() {
+  const cats = ['ทั้งหมด', ...new Set(state.products.map(p => p.category).filter(Boolean))];
+  document.getElementById('categoryTabs').innerHTML = cats.map(c =>
+    `<button class="tab-btn ${c === activeCategory ? 'active' : ''}" onclick="setCategory('${c}')">${c}</button>`
+  ).join('');
+}
+function setCategory(cat) {
+  activeCategory = cat;
+  renderCategoryTabs();
+  renderProductGrid();
+}
+function filterProducts() {
+  renderProductGrid();
+}
+function renderProductGrid() {
+  const q = (document.getElementById('productSearch')?.value || '').toLowerCase();
+  let prods = state.products.filter(p => p.active !== false && p.active !== 'false');
+  if (activeCategory !== 'ทั้งหมด') prods = prods.filter(p => p.category === activeCategory);
+  if (q) prods = prods.filter(p => p.name.toLowerCase().includes(q) || p.code.includes(q));
+
+  const grid = document.getElementById('productGrid');
+  if (!grid) return;
+  if (prods.length === 0) { grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div>ไม่พบสินค้า</div></div>'; return; }
+  grid.innerHTML = prods.map(p => {
+    const inCart = state.cart.find(c => c.product_id === p.product_id);
+    const weightLabel = p.weight_g >= 1000 ? (p.weight_g/1000) + ' kg' : p.weight_g + ' g';
+    return `<div class="product-card ${inCart ? 'selected' : ''}" onclick="addToCart('${p.product_id}')">
+      <div class="p-code">#${p.code}</div>
+      <div class="p-name">${p.name}</div>
+      <div class="p-price">${fmt(p.price)} ₩</div>
+      <div class="p-weight">${weightLabel}</div>
+      ${inCart ? `<div style="font-size:11px;margin-top:6px;color:var(--accent);font-weight:700">✓ ใส่ตะกร้า x${inCart.qty}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function addToCart(productId) {
+  const p = state.products.find(x => x.product_id === productId);
+  if (!p) return;
+  const existing = state.cart.find(c => c.product_id === productId);
+  if (existing) { existing.qty++; }
+  else { state.cart.push({ ...p, qty: 1 }); }
+  renderCartItems();
+  renderProductGrid();
+}
+function changeQty(productId, delta) {
+  const item = state.cart.find(c => c.product_id === productId);
+  if (!item) return;
+  item.qty = Math.max(0, item.qty + delta);
+  if (item.qty === 0) state.cart = state.cart.filter(c => c.product_id !== productId);
+  renderCartItems();
+  renderProductGrid();
+}
+function removeFromCart(productId) {
+  state.cart = state.cart.filter(c => c.product_id !== productId);
+  renderCartItems();
+  renderProductGrid();
+}
+function getShipping() {
+  const toggle = document.getElementById('shippingToggle');
+  const amt = parseInt(document.getElementById('shippingAmt')?.value || '5000');
+  return toggle?.checked ? amt : 0;
+}
+
+function updateShipping() {
+  const toggle = document.getElementById('shippingToggle');
+  const knob = document.getElementById('shippingKnob');
+  const slider = document.getElementById('shippingSlider');
+  if (toggle && knob && slider) {
+    knob.style.left = toggle.checked ? '22px' : '3px';
+    slider.style.background = toggle.checked ? 'rgba(0,212,170,.3)' : '#1e3a5f';
+  }
+  renderCartItems();
+}
+
+function renderCartItems() {
+  const el = document.getElementById('cartItems');
+  const sumEl = document.getElementById('cartSummary');
+  if (!el) return;
+  if (state.cart.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">🛒</div><div>ยังไม่มีสินค้า</div></div>';
+    if (sumEl) sumEl.style.display = 'none';
+    return;
+  }
+  const subtotal = state.cart.reduce((s, c) => s + c.qty * Number(c.price), 0);
+  const shipping = getShipping();
+  const total = subtotal + shipping;
+
+  el.innerHTML = state.cart.map(c => `
+    <div class="cart-item">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</div>
+        <div style="font-size:11px;color:var(--text3)">${fmt(c.price)} ₩/จีง</div>
+      </div>
+      <div class="qty-ctrl">
+        <button class="qty-btn" onclick="changeQty('${c.product_id}',-1)">−</button>
+        <span class="qty-num">${c.qty}</span>
+        <button class="qty-btn" onclick="changeQty('${c.product_id}',1)">+</button>
+      </div>
+      <div class="cart-item-price">${fmt(c.qty * Number(c.price))} ₩</div>
+      <button class="btn btn-icon btn-danger btn-sm" onclick="removeFromCart('${c.product_id}')">✕</button>
+    </div>`).join('');
+
+  if (sumEl) {
+    sumEl.style.display = 'block';
+    document.getElementById('totalEl').textContent = fmt(total) + ' ₩';
+  }
+}
+
+function onPartnerChange() {
+  const id = document.getElementById('partnerSelect')?.value;
+  state.selectedPartner = state.partners.find(p => p.partner_id === id) || null;
+  const infoEl = document.getElementById('partnerInfo');
+  if (!infoEl) return;
+  if (!state.selectedPartner) { infoEl.style.display = 'none'; return; }
+  const p = state.selectedPartner;
+  infoEl.style.display = 'block';
+  infoEl.style.cssText = 'display:block;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:10px;font-size:13px';
+  infoEl.innerHTML = `
+    <div style="font-weight:600;margin-bottom:6px;color:var(--accent)">${p.shop_name}</div>
+    ${p.legal_name ? `<div>📋 นิติบุคคล: ${p.legal_name}</div>` : ''}
+    ${p.tax_id ? `<div>🆔 เลขภาษี: ${p.tax_id}</div>` : ''}
+    ${p.address ? `<div>📍 ${p.address}</div>` : ''}
+    ${p.phone ? `<div>📞 ${p.phone}</div>` : ''}`;
+}
+
+async function submitOrder() {
+  if (!state.selectedPartner) { showToast('กรุณาเลือกร้านพาร์ทเนอร์', true); return; }
+  if (state.cart.length === 0) { showToast('กรุณาเลือกสินค้าอย่างน้อย 1 รายการ', true); return; }
+
+  const p = state.selectedPartner;
+  const orderDate = document.getElementById('orderDate')?.value || new Date().toLocaleDateString('th-TH');
+  const notes = document.getElementById('orderNotes')?.value || '';
+  const shipping = getShipping();
+
+  const items = state.cart.map(c => ({
+    product_code: c.code,
+    product_name: c.name,
+    weight_g: c.weight_g,
+    qty: c.qty,
+    unit_price: Number(c.price),
+  }));
+
+  // เพิ่มค่าขนส่งเป็นรายการพิเศษ
+  if (shipping > 0) {
+    items.push({
+      product_code: 'SHIP',
+      product_name: '배송비 / ค่าขนส่ง',
+      weight_g: '',
+      qty: 1,
+      unit_price: shipping,
+    });
+  }
+
+  const res = await api('createOrder', {
+    partner_id: p.partner_id,
+    shop_name: p.shop_name,
+    tax_id: p.tax_id,
+    address: p.address,
+    order_date: orderDate,
+    notes, items,
+  });
+
+  if (res?.ok) {
+    showToast('✅ บันทึกออเดอร์ ' + res.order_no + ' สำเร็จ!');
+    // refresh orders
+    const ord = await api('getOrders');
+    if (ord?.ok) state.orders = ord.data;
+    // print immediately
+    printOrderDirect(res.order_no, p, items, res);
+    // reset
+    state.cart = [];
+    state.selectedPartner = null;
+    renderOrderPage();
+  } else {
+    showToast('เกิดข้อผิดพลาด: ' + (res?.error || 'ไม่ทราบ'), true);
+  }
+}
+
+// ============================================================
+// PRINT / DOCUMENT
+// ============================================================
+function printOrderDirect(orderNo, partner, items, summary) {
+  const subtotal = summary.subtotal;
+  const vat = summary.vat;
+  const total = summary.total;
+  const c = COMPANY_INFO;
+  const today = new Date().toLocaleDateString('th-TH', { year:'numeric', month:'long', day:'numeric' });
+  showReceiptModal(orderNo, partner, items, subtotal, vat, total, today, c);
+}
+
+async function printOrder(orderId) {
+  showToast('⏳ กำลังโหลดใบเสร็จ...');
+  const res = await api('getOrderDetail', { order_id: orderId });
+  if (!res?.ok) { showToast('โหลดข้อมูลไม่ได้', true); return; }
+  const o = res.order;
+  const partner = { shop_name: o.shop_name, tax_id: o.tax_id, address: o.address };
+  const c = COMPANY_INFO;
+  showReceiptModal(o.order_no, partner, res.items, o.subtotal, o.vat, o.total, o.order_date, c);
+}
+
+function showReceiptModal(orderNo, partner, items, subtotal, vat, total, dateStr, c) {
+  const html = buildDocumentHTML(orderNo, partner, items, subtotal, vat, total, dateStr, c);
+
+  // สร้าง modal ใบเสร็จ
+  const existing = document.getElementById('receiptModal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'receiptModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:20px;overflow-y:auto';
+
+  modal.innerHTML = `
+    <div style="width:100%;max-width:760px;background:#fff;border-radius:12px;overflow:hidden">
+      <div style="background:#111827;padding:14px 20px;display:flex;justify-content:space-between;align-items:center">
+        <span style="color:#00d4aa;font-weight:700;font-size:15px;font-family:Sarabun,sans-serif">🧾 ใบเสร็จ/ใบกำกับภาษี — ${orderNo}</span>
+        <div style="display:flex;gap:8px">
+          <button onclick="downloadReceipt('${orderNo}')" style="background:#00d4aa;color:#000;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-family:Sarabun,sans-serif;font-weight:700;font-size:13px">⬇️ ดาวน์โหลด PDF</button>
+          <button onclick="printReceiptWindow('${orderNo}')" style="background:#0ea5e9;color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-family:Sarabun,sans-serif;font-weight:700;font-size:13px">🖨️ พิมพ์</button>
+          <button onclick="document.getElementById('receiptModal').remove()" style="background:#374151;color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:18px">✕</button>
+        </div>
+      </div>
+      <iframe id="receiptFrame" style="width:100%;height:75vh;border:none"></iframe>
+    </div>`;
+
+  document.body.appendChild(modal);
+
+  // ใส่ HTML เข้า iframe
+  const frame = document.getElementById('receiptFrame');
+  frame.contentDocument.open();
+  frame.contentDocument.write(html);
+  frame.contentDocument.close();
+
+  // เก็บ html ไว้ download
+  window._lastReceiptHTML = html;
+  window._lastReceiptNo = orderNo;
+}
+
+function printReceiptWindow(orderNo) {
+  const frame = document.getElementById('receiptFrame');
+  if (frame) frame.contentWindow.print();
+}
+
+function downloadReceipt(orderNo) {
+  if (!window._lastReceiptHTML) return;
+  const blob = new Blob([window._lastReceiptHTML], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ใบเสร็จ-${orderNo}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('✅ ดาวน์โหลดสำเร็จ — เปิดไฟล์แล้วกด Ctrl+P เพื่อพิมพ์เป็น PDF ได้เลยครับ');
+}
+
+function buildDocumentHTML(orderNo, partner, items, subtotal, vat, total, dateStr, c) {
+  // คำนวณยอดรวมจากสินค้าจริง (ไม่มี VAT แยก)
+  const grandTotal = items.reduce((s, it) => s + (it.qty * (it.unit_price || it.price || 0)), 0);
+
+  const itemRows = items.map((it, i) => `
+    <tr>
+      <td style="padding:8px 6px;border-bottom:1px solid #eee;text-align:center">${i+1}</td>
+      <td style="padding:8px 6px;border-bottom:1px solid #eee">${it.product_name || it.name}</td>
+      <td style="padding:8px 6px;border-bottom:1px solid #eee;text-align:center">${it.weight_g ? it.weight_g + 'g' : '-'}</td>
+      <td style="padding:8px 6px;border-bottom:1px solid #eee;text-align:center">${it.qty}</td>
+      <td style="padding:8px 6px;border-bottom:1px solid #eee;text-align:right">${fmt(it.unit_price || it.price)}</td>
+      <td style="padding:8px 6px;border-bottom:1px solid #eee;text-align:right"><strong>${fmt(it.qty * (it.unit_price || it.price))}</strong></td>
+    </tr>`).join('');
+
+  return `<!DOCTYPE html><html><head><meta charset="UTF-8">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+  <title>거래명세서 ${orderNo}</title>
+  <style>
+    body { font-family: 'Sarabun', sans-serif; font-size: 13px; color: #222; margin: 0; padding: 20px; }
+    .doc-box { max-width: 720px; margin: 0 auto; border: 1.5px solid #333; padding: 28px; }
+    .doc-title { text-align: center; font-size: 22px; font-weight: 700; margin-bottom: 2px; letter-spacing: 2px; }
+    .doc-sub { text-align: center; font-size: 13px; color: #555; margin-bottom: 6px; }
+    .order-no-box { text-align: center; background: #f5f5f5; border: 1px solid #ccc; padding: 6px; margin-bottom: 16px; font-weight: 700; font-size: 14px; }
+    .date-line { text-align: right; margin-bottom: 14px; font-size: 13px; }
+    .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .party-box { border: 1px solid #ccc; padding: 12px; border-radius: 4px; }
+    .party-title { font-weight: 700; font-size: 12px; background: #333; color: white; padding: 4px 8px; margin: -12px -12px 10px; }
+    .party-title.buyer { background: #004999; }
+    .party-row { font-size: 12px; margin-bottom: 3px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 0; }
+    th { background: #333; color: white; padding: 8px 6px; text-align: center; font-size: 12px; }
+    .total-section { display: flex; justify-content: flex-end; margin-top: 0; }
+    .total-table { width: 260px; border: 1px solid #ccc; }
+    .total-table td { padding: 7px 10px; font-size: 13px; border-bottom: 1px solid #eee; }
+    .total-grand { background: #f5f5f5; }
+    .total-grand td { font-weight: 700; font-size: 15px; border-bottom: none; }
+    .sig-row { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 28px; }
+    .sig-box { text-align: center; border-top: 1px solid #999; padding-top: 8px; font-size: 12px; color: #555; }
+    @media print { body { padding: 0; } }
+  </style>
+  </head><body>
+  <div class="doc-box">
+    <div class="doc-title">거래명세서</div>
+    <div class="doc-sub">ใบส่งของ / Trading Statement</div>
+    <div class="order-no-box">No. ${orderNo}</div>
+    <div class="date-line">일자 / วันที่ : ${dateStr}</div>
+
+    <div class="parties">
+      <div class="party-box">
+        <div class="party-title">공급자 / ผู้ขาย (Seller)</div>
+        <div class="party-row"><strong>${c.name}</strong></div>
+        <div class="party-row">사업자번호: ${c.tax_id}</div>
+        <div class="party-row">대표자: ${c.ceo || ''}</div>
+        <div class="party-row" style="font-size:11px">${c.address}</div>
+        <div class="party-row">TEL: ${c.phone}</div>
+      </div>
+      <div class="party-box">
+        <div class="party-title buyer">공급받는자 / ผู้ซื้อ (Buyer)</div>
+        <div class="party-row"><strong>${partner.shop_name}</strong></div>
+        ${partner.tax_id ? `<div class="party-row">사업자번호: ${partner.tax_id}</div>` : ''}
+        ${partner.address ? `<div class="party-row" style="font-size:11px">${partner.address}</div>` : ''}
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:30px">#</th>
+          <th style="text-align:left;padding-left:10px">품목명 / รายการสินค้า</th>
+          <th style="width:60px">규격 / น้ำหนัก</th>
+          <th style="width:50px">수량 / จำนวน</th>
+          <th style="width:80px">단가 / ราคา (₩)</th>
+          <th style="width:90px">공급가액 / รวม (₩)</th>
+        </tr>
+      </thead>
+      <tbody>${itemRows}</tbody>
+    </table>
+
+    <div class="total-section">
+      <table class="total-table">
+        <tr class="total-grand">
+          <td>GRAND TOTAL</td>
+          <td style="text-align:right">${fmt(grandTotal)} ₩</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="sig-row">
+      <div class="sig-box">.................................<br>공급받는자 / ผู้รับสินค้า<br>วันที่ ...............</div>
+      <div class="sig-box">.................................<br>공급자 / ผู้ขาย<br>${c.ceo || ''}</div>
+    </div>
+
+    <div style="margin-top:24px;border-top:1px dashed #aaa;padding-top:14px;font-size:12px;color:#444;line-height:1.9">
+      <div style="font-weight:700;margin-bottom:4px">※ 세금계산서 안내 / แจ้งเรื่องใบกำกับภาษี</div>
+      <div>세금계산서는 부가세 신고 기간에 발행해 드립니다. 걱정하지 마세요.</div>
+      <div style="color:#666">ใบกำกับภาษี (세금계산서) จะออกให้ตามรอบการยื่นภาษีของบริษัท ไม่ต้องกังวลครับ/ค่ะ</div>
+      <div style="margin-top:8px;font-weight:700">※ 문의 / ติดต่อสอบถาม</div>
+      <div>📞 ${c.phone} &nbsp;|&nbsp; 대표 / CEO : ${c.ceo || ''}</div>
+      <div style="color:#666">สอบถามเพิ่มเติมได้ที่เบอร์ด้านบนได้เลยครับ/ค่ะ</div>
+    </div>
+  </div>
+  </body></html>`;
+}
+
+// ============================================================
+// ORDERS PAGE
+// ============================================================
+function renderOrdersPage() {
+  const rows = state.orders.length === 0
+    ? '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📭</div><div>ยังไม่มีออเดอร์</div></div></td></tr>'
+    : state.orders.map(o => {
+        const dateDisplay = o.order_date ? String(o.order_date).replace('T15:00:00.000Z','').replace('T00:00:00.000Z','') : '-';
+        return `<tr style="cursor:pointer" onclick='showOrderDetail("${o.order_id}")'>
+          <td><span class="text-accent" style="font-weight:700">${o.order_no}</span></td>
+          <td><strong>${o.shop_name}</strong></td>
+          <td>${dateDisplay}</td>
+          <td>${fmt(o.subtotal)} ₩</td>
+          <td><strong class="text-accent">${fmt(o.total)} ₩</strong></td>
+          <td onclick="event.stopPropagation()" style="display:flex;gap:6px">
+            <button class="btn btn-sm btn-secondary" onclick='printOrder("${o.order_id}")'>🧾 ใบเสร็จ</button>
+            <button class="btn btn-sm btn-danger" onclick='deleteOrder("${o.order_id}","${o.order_no}")'>🗑️</button>
+          </td>
+        </tr>`;
+      }).join('');
+
+  document.getElementById('mainContent').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div class="search-bar" style="flex:1;max-width:300px">
+        <input type="text" id="orderSearch" placeholder="ค้นหาชื่อร้าน หรือเลขออเดอร์..." oninput="filterOrders(this.value)">
+      </div>
+      <button class="btn btn-danger btn-sm" onclick="clearAllOrders()" style="margin-left:10px">🗑️ ล้างออเดอร์ทั้งหมด</button>
+    </div>
+    <div class="card">
+      <div class="card-title">📋 ออเดอร์ทั้งหมด (${state.orders.length} รายการ) <span style="font-size:12px;color:var(--text3);font-weight:400">— กดที่แถวเพื่อดูรายละเอียด</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>เลขที่</th><th>ร้าน</th><th>วันที่</th><th>ยอดก่อน VAT</th><th>ยอดรวม</th><th>Action</th></tr></thead>
+        <tbody id="ordersBody">${rows}</tbody>
+      </table></div>
+    </div>`;
+}
+
+async function showOrderDetail(orderId) {
+  // แสดง loading modal ก่อน
+  const existing = document.getElementById('orderDetailModal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'orderDetailModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML = `<div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto">
+    <div style="padding:20px;text-align:center;color:var(--text2)"><div class="spinner" style="width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px"></div>กำลังโหลด...</div>
+  </div>`;
+  document.body.appendChild(modal);
+
+  const res = await api('getOrderDetail', { order_id: orderId });
+  if (!res?.ok) { modal.remove(); showToast('โหลดข้อมูลไม่ได้', true); return; }
+
+  const o = res.order;
+  const items = res.items;
+  const dateDisplay = o.order_date ? String(o.order_date).replace('T15:00:00.000Z','').replace('T00:00:00.000Z','') : '-';
+
+  const itemRows = items.map((it, i) => `
+    <tr>
+      <td style="padding:10px 12px;border-bottom:1px solid var(--border)">${i+1}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid var(--border)"><strong>${it.product_name}</strong></td>
+      <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center">${it.weight_g ? it.weight_g+'g' : '-'}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:center"><strong>${it.qty}</strong></td>
+      <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:right">${fmt(it.unit_price)} ₩</td>
+      <td style="padding:10px 12px;border-bottom:1px solid var(--border);text-align:right;color:var(--accent);font-weight:700">${fmt(it.qty * it.unit_price)} ₩</td>
+    </tr>`).join('');
+
+  modal.innerHTML = `
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:16px;width:100%;max-width:640px;max-height:90vh;overflow-y:auto">
+      <!-- Header -->
+      <div style="padding:18px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:18px;font-weight:700;color:var(--accent)">${o.order_no}</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:2px">📅 ${dateDisplay} &nbsp;|&nbsp; 🏪 ${o.shop_name}</div>
+        </div>
+        <button onclick="document.getElementById('orderDetailModal').remove()" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px">✕</button>
+      </div>
+
+      <div style="padding:20px">
+        <!-- ข้อมูลร้าน -->
+        <div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px">
+          <div style="font-weight:700;color:var(--accent2);margin-bottom:6px">🏪 ข้อมูลผู้ซื้อ</div>
+          <div><strong>${o.shop_name}</strong></div>
+          ${o.tax_id ? `<div style="color:var(--text2)">เลขภาษี: ${o.tax_id}</div>` : ''}
+          ${o.address ? `<div style="color:var(--text2)">📍 ${o.address}</div>` : ''}
+        </div>
+
+        <!-- รายการสินค้า -->
+        <div style="font-weight:600;margin-bottom:10px;font-size:14px">📦 รายการสินค้า (${items.length} รายการ)</div>
+        <div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px;margin-bottom:16px">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="background:var(--bg3)">
+                <th style="padding:10px 12px;text-align:left;color:var(--text3);font-size:11px">#</th>
+                <th style="padding:10px 12px;text-align:left;color:var(--text3);font-size:11px">สินค้า</th>
+                <th style="padding:10px 12px;text-align:center;color:var(--text3);font-size:11px">น้ำหนัก</th>
+                <th style="padding:10px 12px;text-align:center;color:var(--text3);font-size:11px">จำนวน</th>
+                <th style="padding:10px 12px;text-align:right;color:var(--text3);font-size:11px">ราคา/จีง</th>
+                <th style="padding:10px 12px;text-align:right;color:var(--text3);font-size:11px">รวม</th>
+              </tr>
+            </thead>
+            <tbody>${itemRows}</tbody>
+          </table>
+        </div>
+
+        <!-- ยอดรวม -->
+        <div style="background:var(--bg3);border-radius:10px;padding:14px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:14px">
+            <span style="color:var(--text2)">ยอดก่อน VAT</span>
+            <span>${fmt(o.subtotal)} ₩</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:14px">
+            <span style="color:var(--text2)">VAT 7%</span>
+            <span>${fmt(o.vat)} ₩</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:700;border-top:1px solid var(--border);padding-top:10px">
+            <span>ยอดรวมทั้งหมด</span>
+            <span style="color:var(--accent)">${fmt(o.total)} ₩</span>
+          </div>
+        </div>
+
+        ${o.notes && o.notes !== '' ? `<div style="margin-top:12px;padding:10px;background:rgba(245,158,11,.08);border-radius:8px;font-size:13px;color:var(--accent3)">📝 หมายเหตุ: ${o.notes}</div>` : ''}
+      </div>
+
+      <!-- Footer -->
+      <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end">
+        <button class="btn btn-danger btn-sm" onclick='deleteOrder("${o.order_id}","${o.order_no}");document.getElementById("orderDetailModal").remove()'>🗑️ ลบออเดอร์</button>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('orderDetailModal').remove()">ปิด</button>
+        <button class="btn btn-primary" onclick='printOrder("${o.order_id}")'>🧾 ดูใบเสร็จ</button>
+      </div>
+    </div>`;
+}
+
+function filterOrders(q) {
+  q = q.toLowerCase();
+  const filtered = q ? state.orders.filter(o => o.shop_name.toLowerCase().includes(q) || o.order_no.toLowerCase().includes(q)) : state.orders;
+  document.getElementById('ordersBody').innerHTML = filtered.map(o => {
+    const dateDisplay = o.order_date ? String(o.order_date).replace('T15:00:00.000Z','').replace('T00:00:00.000Z','') : '-';
+    return `<tr>
+      <td><span class="text-accent">${o.order_no}</span></td>
+      <td><strong>${o.shop_name}</strong></td>
+      <td>${dateDisplay}</td>
+      <td>${fmt(o.subtotal)} ₩</td>
+      <td><strong class="text-accent">${fmt(o.total)} ₩</strong></td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-sm btn-secondary" onclick='printOrder("${o.order_id}")'>🧾 ใบเสร็จ</button>
+        <button class="btn btn-sm btn-danger" onclick='deleteOrder("${o.order_id}","${o.order_no}")'>🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function deleteOrder(orderId, orderNo) {
+  if (!confirm(`ลบออเดอร์ ${orderNo} ?\nไม่สามารถกู้คืนได้`)) return;
+  const res = await api('deleteOrder', { order_id: orderId });
+  if (res?.ok) {
+    showToast('✅ ลบออเดอร์สำเร็จ');
+    state.orders = state.orders.filter(o => o.order_id !== orderId);
+    renderOrdersPage();
+  } else showToast('ลบไม่สำเร็จ', true);
+}
+
+async function clearAllOrders() {
+  if (!confirm('⚠️ ล้างออเดอร์ทั้งหมด?\nข้อมูลจะหายถาวร ไม่สามารถกู้คืนได้')) return;
+  const res = await api('clearOrders');
+  if (res?.ok) {
+    showToast('✅ ล้างออเดอร์ทั้งหมดสำเร็จ');
+    state.orders = [];
+    renderOrdersPage();
+  } else showToast('ไม่สำเร็จ', true);
+}
+
+// ============================================================
+// PARTNERS PAGE
+// ============================================================
+function renderPartnersPage() {
+  document.getElementById('mainContent').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="search-bar" style="flex:1;max-width:300px">
+        <input type="text" id="partnerSearch" placeholder="ค้นหาร้าน..." oninput="filterPartners(this.value)">
+      </div>
+      <button class="btn btn-primary" onclick="openPartnerModal()">➕ เพิ่มพาร์ทเนอร์</button>
+    </div>
+    <div class="card">
+      <div class="table-wrap"><table>
+        <thead><tr><th>ชื่อร้าน</th><th>นิติบุคคล</th><th>เลขภาษี</th><th>ผู้ติดต่อ</th><th>โทร</th><th>เอกสาร</th><th>Action</th></tr></thead>
+        <tbody id="partnersBody">${renderPartnerRows(state.partners)}</tbody>
+      </table></div>
+    </div>
+    ${partnerModalHTML()}`;
+}
+
+function renderPartnerRows(partners) {
+  if (partners.length === 0) return '<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🏪</div><div>ยังไม่มีพาร์ทเนอร์ — กดเพิ่มได้เลย</div></div></td></tr>';
+  return partners.map(p => {
+    const docs = p.docs ? JSON.parse(p.docs) : {};
+    const hasBiz = docs.business_reg?.url;
+    const docCount = Object.values(docs).filter(d => d?.url).length;
+    return `<tr>
+      <td><strong>${p.shop_name}</strong></td>
+      <td>${p.legal_name || '-'}</td>
+      <td>${p.tax_id || '-'}</td>
+      <td>${p.contact_name || '-'}</td>
+      <td>${p.phone || '-'}</td>
+      <td>
+        <span class="badge ${hasBiz ? 'badge-green' : 'badge-yellow'}" style="cursor:pointer" onclick='openDocsModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>
+          ${hasBiz ? '✅' : '⚠️'} ${docCount} ไฟล์
+        </span>
+      </td>
+      <td style="display:flex;gap:6px">
+        <button class="btn btn-sm btn-secondary" onclick='openPartnerModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>✏️</button>
+        <button class="btn btn-sm btn-secondary" onclick='openDocsModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>📁</button>
+        <button class="btn btn-sm btn-danger" onclick='deletePartner("${p.partner_id}")'>🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterPartners(q) {
+  q = q.toLowerCase();
+  const filtered = q ? state.partners.filter(p => p.shop_name.toLowerCase().includes(q) || (p.legal_name || '').toLowerCase().includes(q)) : state.partners;
+  document.getElementById('partnersBody').innerHTML = renderPartnerRows(filtered);
+}
+
+function partnerModalHTML() {
+  return `<div class="modal-overlay" id="partnerModal">
+    <div class="modal" style="max-width:620px">
+      <div class="modal-header">
+        <span class="modal-title" id="partnerModalTitle">➕ เพิ่มพาร์ทเนอร์</span>
+        <button class="modal-close" onclick="closeModal('partnerModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="pEditId">
+        <div class="form-row">
+          <div class="form-group"><label>ชื่อร้าน *</label><input id="pShopName" placeholder="เช่น ร้านอาหารไทยโซล"></div>
+          <div class="form-group"><label>ชื่อนิติบุคคล</label><input id="pLegalName" placeholder="ชื่อบริษัท / ห้างหุ้นส่วน"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>เลขประจำตัวผู้เสียภาษี</label><input id="pTaxId" placeholder="000-00-00000"></div>
+          <div class="form-group"><label>ผู้ติดต่อ</label><input id="pContactName" placeholder="ชื่อ-นามสกุล"></div>
+        </div>
+        <div class="form-group"><label>ที่อยู่ (สำหรับออกเอกสาร)</label><textarea id="pAddress" rows="2" placeholder="ที่อยู่เต็ม"></textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label>โทร</label><input id="pPhone" placeholder="010-0000-0000"></div>
+          <div class="form-group"><label>LINE ID</label><input id="pLine" placeholder="@line_id"></div>
+        </div>
+        <div class="form-group"><label>หมายเหตุ</label><input id="pNotes" placeholder="ข้อมูลเพิ่มเติม"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('partnerModal')">ยกเลิก</button>
+        <button class="btn btn-primary" onclick="savePartner()">💾 บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DOCS MODAL -->
+  <div class="modal-overlay" id="docsModal">
+    <div class="modal" style="max-width:580px">
+      <div class="modal-header">
+        <span class="modal-title">📁 เอกสารพาร์ทเนอร์: <span id="docsPartnerName"></span></span>
+        <button class="modal-close" onclick="closeModal('docsModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="docsPartnerId">
+
+        <div style="padding:10px 14px;background:rgba(14,165,233,.08);border:1px solid rgba(14,165,233,.2);border-radius:8px;margin-bottom:16px;font-size:13px;color:var(--text2)">
+          💡 <strong style="color:var(--accent2)">วิธีใช้:</strong> อัปโหลดไฟล์ไปใน Google Drive ก่อน → คลิกขวาไฟล์ → Share → Copy Link → วางในช่องด้านล่าง
+        </div>
+
+        <!-- ใบจดทะเบียนพาณิชย์ — บังคับ -->
+        <div style="background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:14px;margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <span style="font-weight:700;font-size:14px">📋 ใบจดทะเบียนพาณิชย์</span>
+            <span style="background:var(--red);color:white;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700">บังคับ</span>
+          </div>
+          <input id="bizRegLink" placeholder="วาง Google Drive Link ที่นี่..." style="margin-bottom:6px">
+          <div id="bizRegCurrent" style="display:none;font-size:12px;margin-top:4px"></div>
+        </div>
+
+        <!-- บัตรประชาชน -->
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+          <div style="font-weight:700;font-size:14px;margin-bottom:10px">🪪 บัตรประชาชน / พาสปอร์ต</div>
+          <input id="idCardLink" placeholder="วาง Google Drive Link ที่นี่...">
+          <div id="idCardCurrent" style="display:none;font-size:12px;margin-top:4px"></div>
+        </div>
+
+        <!-- สัญญาพาร์ทเนอร์ -->
+        <div style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:14px">
+          <div style="font-weight:700;font-size:14px;margin-bottom:10px">🤝 สัญญาพาร์ทเนอร์</div>
+          <input id="contractLink" placeholder="วาง Google Drive Link ที่นี่...">
+          <div id="contractCurrent" style="display:none;font-size:12px;margin-top:4px"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('docsModal')">ปิด</button>
+        <button class="btn btn-primary" id="saveDocsBtn" onclick="saveDocs()">💾 บันทึกเอกสาร</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function openPartnerModal(partner) {
+  const m = document.getElementById('partnerModal');
+  if (!m) return;
+  document.getElementById('partnerModalTitle').textContent = partner ? '✏️ แก้ไขพาร์ทเนอร์' : '➕ เพิ่มพาร์ทเนอร์';
+  document.getElementById('pEditId').value = partner?.partner_id || '';
+  document.getElementById('pShopName').value = partner?.shop_name || '';
+  document.getElementById('pLegalName').value = partner?.legal_name || '';
+  document.getElementById('pTaxId').value = partner?.tax_id || '';
+  document.getElementById('pContactName').value = partner?.contact_name || '';
+  document.getElementById('pAddress').value = partner?.address || '';
+  document.getElementById('pPhone').value = partner?.phone || '';
+  document.getElementById('pLine').value = partner?.line_id || '';
+  document.getElementById('pNotes').value = partner?.notes || '';
+  m.classList.add('open');
+}
+
+async function savePartner() {
+  const id = document.getElementById('pEditId').value;
+  const data = {
+    shop_name: document.getElementById('pShopName').value.trim(),
+    legal_name: document.getElementById('pLegalName').value.trim(),
+    tax_id: document.getElementById('pTaxId').value.trim(),
+    contact_name: document.getElementById('pContactName').value.trim(),
+    address: document.getElementById('pAddress').value.trim(),
+    phone: document.getElementById('pPhone').value.trim(),
+    line_id: document.getElementById('pLine').value.trim(),
+    notes: document.getElementById('pNotes').value.trim(),
+  };
+  if (!data.shop_name) { showToast('กรุณากรอกชื่อร้าน', true); return; }
+
+  const res = await api(id ? 'updatePartner' : 'addPartner', id ? { partner_id: id, ...data } : data);
+  if (res?.ok) {
+    showToast(id ? '✅ อัปเดตสำเร็จ' : '✅ เพิ่มพาร์ทเนอร์สำเร็จ');
+    const r = await api('getPartners');
+    if (r?.ok) state.partners = r.data;
+    closeModal('partnerModal');
+    renderPartnersPage();
+  } else showToast('เกิดข้อผิดพลาด', true);
+}
+
+async function deletePartner(id) {
+  if (!confirm('ต้องการลบพาร์ทเนอร์นี้?')) return;
+  const res = await api('deletePartner', { partner_id: id });
+  if (res?.ok) {
+    showToast('✅ ลบสำเร็จ');
+    state.partners = state.partners.filter(p => p.partner_id !== id);
+    renderPartnersPage();
+  } else showToast('เกิดข้อผิดพลาด', true);
+}
+
+// ============================================================
+// DOCS MODAL — Google Drive Link
+// ============================================================
+let _docsPartner = null;
+
+function openDocsModal(partner) {
+  _docsPartner = partner;
+  const docs = partner.docs ? JSON.parse(partner.docs) : {};
+
+  document.getElementById('docsPartnerId').value = partner.partner_id;
+  document.getElementById('docsPartnerName').textContent = partner.shop_name;
+
+  // ใส่ link เดิมถ้ามี
+  const keyMap = { bizReg: 'business_reg', idCard: 'id_card', contract: 'contract' };
+  ['bizReg','idCard','contract'].forEach(k => {
+    const linkInput = document.getElementById(k + 'Link');
+    const currentEl = document.getElementById(k + 'Current');
+    const doc = docs[keyMap[k]];
+    if (linkInput) linkInput.value = doc?.url || '';
+    if (currentEl) {
+      if (doc?.url) {
+        currentEl.style.display = 'block';
+        currentEl.innerHTML = `✅ มีไฟล์แล้ว — <a href="${doc.url}" target="_blank" style="color:var(--accent)">เปิดดู →</a>`;
+      } else {
+        currentEl.style.display = 'none';
+      }
+    }
+  });
+
+  document.getElementById('docsModal').classList.add('open');
+}
+
+async function saveDocs() {
+  const partnerId = document.getElementById('docsPartnerId').value;
+  if (!partnerId) return;
+
+  const bizLink = document.getElementById('bizRegLink').value.trim();
+  const idLink  = document.getElementById('idCardLink').value.trim();
+  const conLink = document.getElementById('contractLink').value.trim();
+
+  // ตรวจ: ใบจดทะเบียนบังคับ
+  const existingDocs = _docsPartner?.docs ? JSON.parse(_docsPartner.docs) : {};
+  if (!bizLink && !existingDocs['business_reg']?.url) {
+    showToast('⚠️ กรุณาใส่ Link ใบจดทะเบียนพาณิชย์ก่อน (บังคับ)', true);
+    return;
+  }
+
+  const docs = { ...existingDocs };
+  if (bizLink) docs['business_reg'] = { url: bizLink, name: 'ใบจดทะเบียนพาณิชย์', saved_at: new Date().toISOString() };
+  if (idLink)  docs['id_card']       = { url: idLink,  name: 'บัตรประชาชน/พาสปอร์ต', saved_at: new Date().toISOString() };
+  if (conLink) docs['contract']      = { url: conLink, name: 'สัญญาพาร์ทเนอร์', saved_at: new Date().toISOString() };
+
+  const btn = document.getElementById('saveDocsBtn');
+  btn.textContent = '⏳ กำลังบันทึก...';
+  btn.disabled = true;
+
+  const res = await api('updatePartnerDocs', { partner_id: partnerId, docs: JSON.stringify(docs) });
+
+  btn.textContent = '💾 บันทึกเอกสาร';
+  btn.disabled = false;
+
+  if (res?.ok) {
+    showToast('✅ บันทึก Link เอกสารสำเร็จ!');
+    const r = await api('getPartners');
+    if (r?.ok) state.partners = r.data;
+    closeModal('docsModal');
+    renderPartnersPage();
+  } else {
+    showToast('บันทึกไม่สำเร็จ: ' + (res?.error || ''), true);
+  }
+}
+
+
+// ============================================================
+// PRODUCTS PAGE
+// ============================================================
+function renderProductsPage() {
+  document.getElementById('mainContent').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div class="search-bar" style="flex:1;max-width:300px">
+        <input type="text" placeholder="ค้นหาสินค้า..." oninput="filterProductsTable(this.value)">
+      </div>
+      <button class="btn btn-primary" onclick="openProductModal()">➕ เพิ่มสินค้า</button>
+    </div>
+    <div class="card">
+      <div class="table-wrap"><table>
+        <thead><tr><th>รหัส</th><th>ชื่อสินค้า</th><th>หมวด</th><th>น้ำหนัก</th><th>ราคา (₩)</th><th>สถานะ</th><th>Action</th></tr></thead>
+        <tbody id="productsBody">${renderProductRows(state.products)}</tbody>
+      </table></div>
+    </div>
+    ${productModalHTML()}`;
+}
+
+function renderProductRows(products) {
+  return products.map(p => `<tr>
+    <td><span class="badge badge-blue">${p.code}</span></td>
+    <td><strong>${p.name}</strong></td>
+    <td>${p.category || '-'}</td>
+    <td>${p.weight_g ? p.weight_g + 'g' : '-'}</td>
+    <td><strong class="text-accent">${fmt(p.price)}</strong></td>
+    <td><span class="badge ${p.active !== false && p.active !== 'false' ? 'badge-green' : 'badge-yellow'}">${p.active !== false && p.active !== 'false' ? '✓ ใช้งาน' : '✕ ปิด'}</span></td>
+    <td style="display:flex;gap:6px">
+      <button class="btn btn-sm btn-secondary" onclick='openProductModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>✏️</button>
+    </td>
+  </tr>`).join('');
+}
+
+function filterProductsTable(q) {
+  q = q.toLowerCase();
+  const filtered = q ? state.products.filter(p => p.name.toLowerCase().includes(q) || p.code.includes(q)) : state.products;
+  document.getElementById('productsBody').innerHTML = renderProductRows(filtered);
+}
+
+function productModalHTML() {
+  return `<div class="modal-overlay" id="productModal">
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title" id="productModalTitle">➕ เพิ่มสินค้า</span>
+        <button class="modal-close" onclick="closeModal('productModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="prodEditId">
+        <div class="form-row">
+          <div class="form-group"><label>รหัสสินค้า</label><input id="prodCode" placeholder="00001"></div>
+          <div class="form-group"><label>หมวดหมู่</label><input id="prodCat" placeholder="ไส้กรอก / ลูกชิ้น..."></div>
+        </div>
+        <div class="form-group"><label>ชื่อสินค้า *</label><input id="prodName" placeholder="ชื่อสินค้าภาษาไทย"></div>
+        <div class="form-row">
+          <div class="form-group"><label>น้ำหนัก (g)</label><input id="prodWeight" type="number" placeholder="280"></div>
+          <div class="form-group"><label>หน่วย</label><input id="prodUnit" placeholder="ชิ้น/จีง"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>ราคาส่ง (₩) *</label><input id="prodPrice" type="number" placeholder="4500"></div>
+          <div class="form-group"><label>สถานะ</label>
+            <select id="prodActive">
+              <option value="true">✓ ใช้งาน</option>
+              <option value="false">✕ ปิดการใช้งาน</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label>หมายเหตุ</label><input id="prodNotes" placeholder="จำนวน/จีง หรือข้อมูลเพิ่มเติม"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('productModal')">ยกเลิก</button>
+        <button class="btn btn-primary" onclick="saveProduct()">💾 บันทึก</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function openProductModal(prod) {
+  const m = document.getElementById('productModal');
+  if (!m) return;
+  document.getElementById('productModalTitle').textContent = prod ? '✏️ แก้ไขสินค้า' : '➕ เพิ่มสินค้า';
+  document.getElementById('prodEditId').value = prod?.product_id || '';
+  document.getElementById('prodCode').value = prod?.code || '';
+  document.getElementById('prodName').value = prod?.name || '';
+  document.getElementById('prodCat').value = prod?.category || '';
+  document.getElementById('prodWeight').value = prod?.weight_g || '';
+  document.getElementById('prodUnit').value = prod?.unit || '';
+  document.getElementById('prodPrice').value = prod?.price || '';
+  document.getElementById('prodActive').value = prod ? String(prod.active !== false && prod.active !== 'false') : 'true';
+  document.getElementById('prodNotes').value = prod?.notes || '';
+  m.classList.add('open');
+}
+
+async function saveProduct() {
+  const id = document.getElementById('prodEditId').value;
+  const data = {
+    code: document.getElementById('prodCode').value.trim(),
+    name: document.getElementById('prodName').value.trim(),
+    category: document.getElementById('prodCat').value.trim(),
+    weight_g: document.getElementById('prodWeight').value,
+    unit: document.getElementById('prodUnit').value.trim(),
+    price: document.getElementById('prodPrice').value,
+    active: document.getElementById('prodActive').value === 'true',
+    notes: document.getElementById('prodNotes').value.trim(),
+  };
+  if (!data.name || !data.price) { showToast('กรุณากรอกชื่อและราคา', true); return; }
+  const res = await api(id ? 'updateProduct' : 'addProduct', id ? { product_id: id, ...data } : data);
+  if (res?.ok) {
+    showToast('✅ บันทึกสำเร็จ');
+    const r = await api('getProducts');
+    if (r?.ok) state.products = r.data;
+    closeModal('productModal');
+    renderProductsPage();
+  } else showToast('เกิดข้อผิดพลาด', true);
+}
+
+// ============================================================
+// SETTINGS PAGE
+// ============================================================
+function renderSettingsPage() {
+  const c = COMPANY_INFO;
+  document.getElementById('mainContent').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+      <div class="card">
+        <div class="card-title">🔗 ตั้งค่า Apps Script URL</div>
+        <div class="form-group">
+          <label>Apps Script Web App URL</label>
+          <input id="scriptUrl" value="${SCRIPT_URL}" placeholder="https://script.google.com/macros/s/...">
+        </div>
+        <div style="display:flex;gap:10px;margin-top:6px">
+          <button class="btn btn-primary" onclick="saveScriptUrl()">💾 บันทึก URL</button>
+          <button class="btn btn-secondary" onclick="initSheetsDirect()">🚀 สร้าง Sheets</button>
+        </div>
+        <div style="margin-top:16px;padding:12px;background:var(--bg3);border-radius:8px;font-size:12px;color:var(--text2)">
+          <div style="font-weight:600;margin-bottom:6px">📌 วิธีตั้งค่า:</div>
+          <div>1. เปิด Google Sheets → Extensions → Apps Script</div>
+          <div>2. วางโค้ด .gs ลงไป → Deploy → New Deployment</div>
+          <div>3. เลือก Execute as: Me, Access: Anyone</div>
+          <div>4. Copy URL มาวางในช่องด้านบน</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">🏢 ข้อมูลบริษัท (ผู้ขาย)</div>
+        <div class="form-group"><label>ชื่อบริษัท (เกาหลี)</label><input id="cName" value="${c.name}"></div>
+        <div class="form-group"><label>ชื่อบริษัท (ไทย)</label><input id="cNameTh" value="${c.name_th || ''}"></div>
+        <div class="form-group"><label>เลขนิติบุคคล (사업자등록번호)</label><input id="cTax" value="${c.tax_id}"></div>
+        <div class="form-group"><label>ที่อยู่</label><textarea id="cAddr" rows="2">${c.address}</textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label>โทร</label><input id="cPhone" value="${c.phone}"></div>
+          <div class="form-group"><label>CEO</label><input id="cCeo" value="${c.ceo || ''}"></div>
+        </div>
+        <button class="btn btn-primary" onclick="saveCompany()">💾 บันทึกข้อมูลบริษัท</button>
+      </div>
+    </div>`;
+}
+
+function saveScriptUrl() {
+  SCRIPT_URL = document.getElementById('scriptUrl').value.trim();
+  localStorage.setItem('nkw_script_url', SCRIPT_URL);
+  showToast('✅ บันทึก URL สำเร็จ — กำลังโหลดข้อมูล...');
+  setTimeout(() => init(), 800);
+}
+
+async function initSheetsDirect() {
+  if (!SCRIPT_URL) { showToast('กรุณาบันทึก URL ก่อน', true); return; }
+  const res = await api('initSheets');
+  if (res?.ok) { showToast('✅ สร้าง Sheets สำเร็จ!'); init(); }
+  else showToast('เกิดข้อผิดพลาด: ' + (res?.error || ''), true);
+}
+
+function saveCompany() {
+  COMPANY_INFO = {
+    name: document.getElementById('cName').value.trim(),
+    name_th: document.getElementById('cNameTh').value.trim(),
+    tax_id: document.getElementById('cTax').value.trim(),
+    address: document.getElementById('cAddr').value.trim(),
+    phone: document.getElementById('cPhone').value.trim(),
+    ceo: document.getElementById('cCeo').value.trim(),
+  };
+  localStorage.setItem('nkw_company', JSON.stringify(COMPANY_INFO));
+  showToast('✅ บันทึกข้อมูลบริษัทสำเร็จ');
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function fmt(n) {
+  return Number(n || 0).toLocaleString('ko-KR');
+}
+function openModal(id) { document.getElementById(id)?.classList.add('open'); }
+function closeModal(id) { document.getElementById(id)?.classList.remove('open'); }
+function showToast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ============================================================
+// START
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  if (!SCRIPT_URL) renderSettingsPage();
+  else init();
+});
+</script>
+</body>
+</html>
