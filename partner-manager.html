@@ -219,6 +219,7 @@ hr { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
     <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard"><span class="nav-icon">📊</span> ภาพรวม</div>
     <div class="nav-item" onclick="showPage('order')" id="nav-order"><span class="nav-icon">🛒</span> สร้างออเดอร์</div>
     <div class="nav-item" onclick="showPage('orders')" id="nav-orders"><span class="nav-icon">📋</span> ประวัติออเดอร์</div>
+    <div class="nav-item" onclick="showPage('report')" id="nav-report"><span class="nav-icon">📈</span> รายงาน</div>
     <div class="nav-item" onclick="showPage('partners')" id="nav-partners"><span class="nav-icon">🏪</span> พาร์ทเนอร์</div>
     <div class="nav-item" onclick="showPage('products')" id="nav-products"><span class="nav-icon">📦</span> สินค้า</div>
     <div class="nav-item" onclick="showPage('settings')" id="nav-settings"><span class="nav-icon">⚙️</span> ตั้งค่า</div>
@@ -232,6 +233,8 @@ hr { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
       <span class="topbar-title" id="pageTitle">ภาพรวม</span>
     </div>
     <div class="topbar-right">
+      <span id="lastUpdated" style="font-size:11px;color:var(--text3);margin-right:4px"></span>
+      <button class="btn btn-secondary btn-sm" onclick="refreshData()" id="refreshBtn" title="อัปเดตข้อมูล">🔄</button>
       <button class="btn btn-primary" onclick="showPage('order')">➕ ออเดอร์ใหม่</button>
     </div>
   </div>
@@ -294,17 +297,42 @@ async function api(action, body = {}) {
 // ============================================================
 async function init() {
   if (!SCRIPT_URL) { showPage('settings'); return; }
-  // ล้าง cart ทุกครั้งที่โหลด
   state.cart = [];
   state.selectedPartner = null;
   showLoading();
-  const [prd, prt, ord] = await Promise.all([
-    api('getProducts'), api('getPartners'), api('getOrders')
-  ]);
-  if (prd?.ok) state.products = prd.data;
-  if (prt?.ok) state.partners = prt.data;
-  if (ord?.ok) state.orders = ord.data;
-  showPage('dashboard');
+  await refreshData(true);
+  // Auto-refresh ทุก 30 วินาที
+  if (window._autoRefreshTimer) clearInterval(window._autoRefreshTimer);
+  window._autoRefreshTimer = setInterval(() => refreshData(false), 30000);
+}
+
+async function refreshData(isInit = false) {
+  try {
+    const btn = document.getElementById('refreshBtn');
+    if (btn) btn.textContent = '⏳';
+    const [prd, prt, ord] = await Promise.all([
+      api('getProducts'), api('getPartners'), api('getOrders')
+    ]);
+    if (prd?.ok) state.products = prd.data;
+    if (prt?.ok) state.partners = prt.data;
+    if (ord?.ok) state.orders = ord.data;
+    // อัปเดตเวลา
+    const now = new Date();
+    const timeStr = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0') + ':' + now.getSeconds().toString().padStart(2,'0');
+    const el = document.getElementById('lastUpdated');
+    if (el) el.textContent = 'อัปเดต ' + timeStr;
+    if (btn) btn.textContent = '🔄';
+    // Re-render หน้าปัจจุบันถ้าไม่ใช่ init
+    if (!isInit) {
+      const pages = { dashboard: renderDashboard, orders: renderOrdersPage, partners: renderPartnersPage, products: renderProductsPage, report: renderReportPage };
+      if (pages[state.currentPage]) pages[state.currentPage]();
+    } else {
+      showPage('dashboard');
+    }
+  } catch(e) {
+    const btn = document.getElementById('refreshBtn');
+    if (btn) btn.textContent = '🔄';
+  }
 }
 
 function showLoading() {
@@ -319,9 +347,9 @@ function showPage(page) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const navEl = document.getElementById('nav-' + page);
   if (navEl) navEl.classList.add('active');
-  const titles = { dashboard:'ภาพรวม', order:'สร้างออเดอร์ใหม่', orders:'ประวัติออเดอร์', partners:'จัดการพาร์ทเนอร์', products:'จัดการสินค้า', settings:'ตั้งค่าระบบ' };
+  const titles = { dashboard:'ภาพรวม', order:'สร้างออเดอร์ใหม่', orders:'ประวัติออเดอร์', report:'รายงานสรุป', partners:'จัดการพาร์ทเนอร์', products:'จัดการสินค้า', settings:'ตั้งค่าระบบ' };
   document.getElementById('pageTitle').textContent = titles[page] || page;
-  const pages = { dashboard: renderDashboard, order: renderOrderPage, orders: renderOrdersPage, partners: renderPartnersPage, products: renderProductsPage, settings: renderSettingsPage };
+  const pages = { dashboard: renderDashboard, order: renderOrderPage, orders: renderOrdersPage, report: renderReportPage, partners: renderPartnersPage, products: renderProductsPage, settings: renderSettingsPage };
   if (pages[page]) pages[page]();
   closeSidebar();
 }
@@ -823,15 +851,15 @@ function buildDocumentHTML(orderNo, partner, items, subtotal, vat, total, dateSt
 // ============================================================
 function renderOrdersPage() {
   const rows = state.orders.length === 0
-    ? '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📭</div><div>ยังไม่มีออเดอร์</div></div></td></tr>'
+    ? '<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">📭</div><div>ยังไม่มีออเดอร์</div></div></td></tr>'
     : state.orders.map(o => {
         const dateDisplay = o.order_date ? String(o.order_date).replace('T15:00:00.000Z','').replace('T00:00:00.000Z','') : '-';
+        const grandTotal = Number(o.total) || Number(o.subtotal) || 0;
         return `<tr style="cursor:pointer" onclick='showOrderDetail("${o.order_id}")'>
           <td><span class="text-accent" style="font-weight:700">${o.order_no}</span></td>
           <td><strong>${o.shop_name}</strong></td>
           <td>${dateDisplay}</td>
-          <td>${fmt(o.subtotal)} ₩</td>
-          <td><strong class="text-accent">${fmt(o.total)} ₩</strong></td>
+          <td><strong class="text-accent">${fmt(grandTotal)} ₩</strong></td>
           <td onclick="event.stopPropagation()" style="display:flex;gap:6px">
             <button class="btn btn-sm btn-secondary" onclick='printOrder("${o.order_id}")'>🧾 ใบเสร็จ</button>
             <button class="btn btn-sm btn-danger" onclick='deleteOrder("${o.order_id}","${o.order_no}")'>🗑️</button>
@@ -849,7 +877,7 @@ function renderOrdersPage() {
     <div class="card">
       <div class="card-title">📋 ออเดอร์ทั้งหมด (${state.orders.length} รายการ) <span style="font-size:12px;color:var(--text3);font-weight:400">— กดที่แถวเพื่อดูรายละเอียด</span></div>
       <div class="table-wrap"><table>
-        <thead><tr><th>เลขที่</th><th>ร้าน</th><th>วันที่</th><th>ยอดก่อน VAT</th><th>ยอดรวม</th><th>Action</th></tr></thead>
+        <thead><tr><th>เลขที่</th><th>ร้าน</th><th>วันที่</th><th>ยอดรวม</th><th>Action</th></tr></thead>
         <tbody id="ordersBody">${rows}</tbody>
       </table></div>
     </div>`;
@@ -925,17 +953,9 @@ async function showOrderDetail(orderId) {
 
         <!-- ยอดรวม -->
         <div style="background:var(--bg3);border-radius:10px;padding:14px">
-          <div style="display:flex;justify-content:space-between;margin-bottom:6px;font-size:14px">
-            <span style="color:var(--text2)">ยอดก่อน VAT</span>
-            <span>${fmt(o.subtotal)} ₩</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:14px">
-            <span style="color:var(--text2)">VAT 7%</span>
-            <span>${fmt(o.vat)} ₩</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:700;border-top:1px solid var(--border);padding-top:10px">
+          <div style="display:flex;justify-content:space-between;font-size:18px;font-weight:700">
             <span>ยอดรวมทั้งหมด</span>
-            <span style="color:var(--accent)">${fmt(o.total)} ₩</span>
+            <span style="color:var(--accent)">${fmt(items.reduce((s,it) => s + it.qty * it.unit_price, 0))} ₩</span>
           </div>
         </div>
 
@@ -1243,8 +1263,139 @@ async function saveDocs() {
 
 
 // ============================================================
-// PRODUCTS PAGE
+// REPORT PAGE
 // ============================================================
+function renderReportPage() {
+  const today = new Date().toISOString().split('T')[0];
+  const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+
+  document.getElementById('mainContent').innerHTML = `
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">📅 เลือกช่วงเวลา</div>
+      <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+        <div class="form-group" style="margin:0;flex:1;min-width:140px">
+          <label>จากวันที่</label>
+          <input type="date" id="reportFrom" value="${firstDay}">
+        </div>
+        <div class="form-group" style="margin:0;flex:1;min-width:140px">
+          <label>ถึงวันที่</label>
+          <input type="date" id="reportTo" value="${today}">
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-secondary btn-sm" onclick="setReportPeriod(7)">7 วัน</button>
+          <button class="btn btn-secondary btn-sm" onclick="setReportPeriod(15)">15 วัน</button>
+          <button class="btn btn-secondary btn-sm" onclick="setReportPeriod(30)">30 วัน</button>
+          <button class="btn btn-secondary btn-sm" onclick="setReportMonth()">เดือนนี้</button>
+          <button class="btn btn-primary" onclick="generateReport()">🔍 ดูรายงาน</button>
+        </div>
+      </div>
+    </div>
+    <div id="reportResult"></div>`;
+  generateReport();
+}
+
+function setReportPeriod(days) {
+  const to = new Date();
+  const from = new Date();
+  from.setDate(from.getDate() - days);
+  document.getElementById('reportFrom').value = from.toISOString().split('T')[0];
+  document.getElementById('reportTo').value = to.toISOString().split('T')[0];
+  generateReport();
+}
+
+function setReportMonth() {
+  const now = new Date();
+  const from = new Date(now.getFullYear(), now.getMonth(), 1);
+  const to = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  document.getElementById('reportFrom').value = from.toISOString().split('T')[0];
+  document.getElementById('reportTo').value = to.toISOString().split('T')[0];
+  generateReport();
+}
+
+function generateReport() {
+  const fromStr = document.getElementById('reportFrom')?.value;
+  const toStr = document.getElementById('reportTo')?.value;
+  if (!fromStr || !toStr) return;
+
+  const from = new Date(fromStr);
+  const to = new Date(toStr);
+  to.setHours(23,59,59);
+
+  // กรองออเดอร์ตามช่วงเวลา
+  const filtered = state.orders.filter(o => {
+    const d = new Date(o.order_date || o.created_at);
+    return d >= from && d <= to;
+  });
+
+  if (filtered.length === 0) {
+    document.getElementById('reportResult').innerHTML = `
+      <div class="card"><div class="empty-state"><div class="empty-icon">📭</div><div>ไม่มีออเดอร์ในช่วงเวลานี้</div></div></div>`;
+    return;
+  }
+
+  // สรุปรายพาร์ทเนอร์
+  const byPartner = {};
+  filtered.forEach(o => {
+    const key = o.shop_name;
+    if (!byPartner[key]) byPartner[key] = { shop_name: o.shop_name, tax_id: o.tax_id || '-', orders: 0, total: 0 };
+    byPartner[key].orders++;
+    byPartner[key].total += Number(o.total) || Number(o.subtotal) || 0;
+  });
+
+  const partnerList = Object.values(byPartner).sort((a,b) => b.total - a.total);
+  const grandTotal = partnerList.reduce((s,p) => s + p.total, 0);
+
+  const rows = partnerList.map((p,i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td><strong>${p.shop_name}</strong></td>
+      <td style="color:var(--text2);font-size:12px">${p.tax_id}</td>
+      <td style="text-align:center">${p.orders} ครั้ง</td>
+      <td style="text-align:right"><strong class="text-accent">${fmt(p.total)} ₩</strong></td>
+    </tr>`).join('');
+
+  document.getElementById('reportResult').innerHTML = `
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-title">📊 สรุปยอดซื้อ: ${fromStr} ถึง ${toStr}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px">
+        <div class="stat-card"><div class="stat-val">${filtered.length}</div><div class="stat-label">📋 ออเดอร์ทั้งหมด</div></div>
+        <div class="stat-card"><div class="stat-val">${partnerList.length}</div><div class="stat-label">🏪 พาร์ทเนอร์</div></div>
+        <div class="stat-card"><div class="stat-val">${fmt(grandTotal)}</div><div class="stat-label">💰 ยอดรวม (₩)</div></div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>#</th><th>ร้าน</th><th>เลขภาษี</th><th>จำนวนออเดอร์</th><th>ยอดรวม (₩)</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot>
+          <tr style="background:var(--bg3)">
+            <td colspan="4" style="padding:10px 12px;font-weight:700">รวมทั้งหมด</td>
+            <td style="padding:10px 12px;text-align:right;font-weight:700;color:var(--accent);font-size:16px">${fmt(grandTotal)} ₩</td>
+          </tr>
+        </tfoot>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📋 รายการออเดอร์ทั้งหมด</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>เลขที่</th><th>ร้าน</th><th>วันที่</th><th>ยอดรวม</th><th>Action</th></tr></thead>
+        <tbody>
+          ${filtered.map(o => {
+            const d = o.order_date ? String(o.order_date).replace('T15:00:00.000Z','').replace('T00:00:00.000Z','') : '-';
+            const t = Number(o.total) || Number(o.subtotal) || 0;
+            return `<tr>
+              <td><span class="text-accent">${o.order_no}</span></td>
+              <td>${o.shop_name}</td>
+              <td>${d}</td>
+              <td><strong>${fmt(t)} ₩</strong></td>
+              <td><button class="btn btn-sm btn-secondary" onclick='printOrder("${o.order_id}")'>🧾 ใบเสร็จ</button></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table></div>
+    </div>`;
+}
+
+
 function renderProductsPage() {
   document.getElementById('mainContent').innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
