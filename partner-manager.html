@@ -308,6 +308,17 @@ async function init() {
 
 async function refreshData(isInit = false) {
   try {
+    // ไม่ refresh ถ้ามี modal เปิดอยู่ (กำลังกรอกข้อมูล)
+    if (!isInit) {
+      const hasOpenModal = document.querySelector('.modal-overlay.open') ||
+                           document.getElementById('partnerModal')?.classList.contains('open') ||
+                           document.getElementById('productModal')?.classList.contains('open') ||
+                           document.getElementById('docsModal')?.classList.contains('open') ||
+                           document.getElementById('orderDetailModal') ||
+                           document.getElementById('receiptModal');
+      if (hasOpenModal) return; // รอ modal ปิดก่อน
+    }
+
     const btn = document.getElementById('refreshBtn');
     if (btn) btn.textContent = '⏳';
     const [prd, prt, ord] = await Promise.all([
